@@ -1,0 +1,37 @@
+{
+  "name": "@fetchling/core",
+  "version": "0.0.1",
+  "description": "Embeddable core of fetchling, an MCP router with lazy tool loading. Work in progress.",
+  "license": "MIT",
+  "author": "Gleb Stepanov",
+  "type": "module",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fetchling/fetchling.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/fetchling/fetchling/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "mcp-router",
+    "mcp-gateway",
+    "lazy-loading",
+    "tools"
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "name": "fetchling",
+  "version": "0.0.1",
+  "description": "MCP router with lazy tool loading. Work in progress.",
+  "license": "MIT",
+  "author": "Gleb Stepanov",
+  "type": "module",
+  "bin": {
+    "fetchling": "./bin.js"
+  },
+  "files": [
+    "bin.js",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fetchling/fetchling.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fetchling/fetchling/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "mcp-gateway",
+    "mcp-router",
+    "mcp-proxy",
+    "claude-code",
+    "lazy-loading",
+    "tools"
+  ]
+}
