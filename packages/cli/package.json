@@ -6,10 +6,10 @@
   "author": "Gleb Stepanov",
   "type": "module",
   "bin": {
-    "fetchling": "bin.js"
+    "fetchling": "dist/bin.js"
   },
   "files": [
-    "bin.js",
+    "dist",
     "README.md"
   ],
   "engines": {
@@ -17,7 +17,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fetchling/fetchling.git"
+    "url": "git+https://github.com/fetchling/fetchling.git",
+    "directory": "packages/cli"
   },
   "homepage": "https://fetchling.sh",
   "bugs": {
@@ -32,5 +33,22 @@
     "claude-code",
     "lazy-loading",
     "tools"
-  ]
+  ],
+  "dependencies": {
+    "@fetchling/server": "workspace:^",
+    "@fetchling/config": "workspace:^"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --build"
+  },
+  "tsdown": {
+    "fixedExtension": false,
+    "entry": [
+      "src/bin.ts"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0"
+  }
 }
