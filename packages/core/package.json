@@ -6,10 +6,13 @@
   "author": "Gleb Stepanov",
   "type": "module",
   "exports": {
-    ".": "./index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   },
   "files": [
-    "index.js",
+    "dist",
     "README.md"
   ],
   "engines": {
@@ -34,5 +37,12 @@
     "mcp-gateway",
     "lazy-loading",
     "tools"
-  ]
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --build"
+  },
+  "tsdown": {
+    "fixedExtension": false
+  }
 }
