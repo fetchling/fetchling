@@ -21,7 +21,7 @@
   "javascript": { "formatter": { "quoteStyle": "double", "semicolons": "always" } },
   "overrides": [
     {
-      "includes": ["packages/fetchling/bin.js"],
+      "includes": ["packages/cli/src/bin.ts"],
       "linter": { "rules": { "suspicious": { "noConsole": "off" } } }
     }
   ]

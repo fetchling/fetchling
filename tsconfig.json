@@ -2,5 +2,24 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "./tsconfig.base.json",
   "files": [],
-  "references": []
+  "references": [
+    {
+      "path": "./packages/core"
+    },
+    {
+      "path": "./packages/config"
+    },
+    {
+      "path": "./packages/upstream"
+    },
+    {
+      "path": "./packages/server"
+    },
+    {
+      "path": "./packages/testkit"
+    },
+    {
+      "path": "./packages/cli"
+    }
+  ]
 }

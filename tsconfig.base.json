@@ -5,23 +5,20 @@
     "lib": ["es2023"],
     "module": "nodenext",
     "moduleResolution": "nodenext",
-
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
-
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "erasableSyntaxOnly": true,
-
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "noEmit": true,
-
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "types": []
   }
 }
