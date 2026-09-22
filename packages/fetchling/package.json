@@ -6,7 +6,7 @@
   "author": "Gleb Stepanov",
   "type": "module",
   "bin": {
-    "fetchling": "./bin.js"
+    "fetchling": "bin.js"
   },
   "files": [
     "bin.js",
@@ -19,6 +19,7 @@
     "type": "git",
     "url": "git+https://github.com/fetchling/fetchling.git"
   },
+  "homepage": "https://fetchling.sh",
   "bugs": {
     "url": "https://github.com/fetchling/fetchling/issues"
   },

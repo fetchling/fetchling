@@ -23,6 +23,7 @@
     "url": "git+https://github.com/fetchling/fetchling.git",
     "directory": "packages/core"
   },
+  "homepage": "https://fetchling.sh",
   "bugs": {
     "url": "https://github.com/fetchling/fetchling/issues"
   },
