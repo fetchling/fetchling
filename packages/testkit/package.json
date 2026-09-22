@@ -1,0 +1,43 @@
+{
+  "name": "@fetchling/testkit",
+  "version": "0.0.0",
+  "description": "Fake upstream MCP servers and test fixtures for fetchling.",
+  "license": "MIT",
+  "author": "Gleb Stepanov",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fetchling/fetchling.git",
+    "directory": "packages/testkit"
+  },
+  "homepage": "https://fetchling.sh",
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --build"
+  },
+  "dependencies": {
+    "@fetchling/core": "workspace:^"
+  },
+  "tsdown": {
+    "fixedExtension": false
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0"
+  }
+}

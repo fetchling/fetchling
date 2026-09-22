@@ -1,0 +1,40 @@
+{
+  "name": "@fetchling/config",
+  "version": "0.0.0",
+  "description": "Config schema and loader for fetchling (mcp.json compatible).",
+  "license": "MIT",
+  "author": "Gleb Stepanov",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fetchling/fetchling.git",
+    "directory": "packages/config"
+  },
+  "homepage": "https://fetchling.sh",
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --build"
+  },
+  "tsdown": {
+    "fixedExtension": false
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0"
+  }
+}

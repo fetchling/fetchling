@@ -1,0 +1,45 @@
+{
+  "name": "@fetchling/server",
+  "version": "0.0.0",
+  "description": "MCP server facade for fetchling: stdio and Streamable HTTP transports.",
+  "license": "MIT",
+  "author": "Gleb Stepanov",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fetchling/fetchling.git",
+    "directory": "packages/server"
+  },
+  "homepage": "https://fetchling.sh",
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --build"
+  },
+  "dependencies": {
+    "@fetchling/core": "workspace:^",
+    "@fetchling/upstream": "workspace:^",
+    "@fetchling/config": "workspace:^"
+  },
+  "tsdown": {
+    "fixedExtension": false
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0"
+  }
+}
