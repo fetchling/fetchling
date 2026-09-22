@@ -28,13 +28,6 @@ importers:
         version: 5.0.1(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(yaml@2.9.1))
 
   packages/cli:
-    dependencies:
-      '@fetchling/config':
-        specifier: workspace:^
-        version: link:../config
-      '@fetchling/server':
-        specifier: workspace:^
-        version: link:../server
     devDependencies:
       '@types/node':
         specifier: ^24.0.0

@@ -1,6 +1,6 @@
 {
   "name": "fetchling",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "MCP router with lazy tool loading. Work in progress.",
   "license": "MIT",
   "author": "Gleb Stepanov",
@@ -10,7 +10,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": ">=20"
@@ -34,10 +35,6 @@
     "lazy-loading",
     "tools"
   ],
-  "dependencies": {
-    "@fetchling/server": "workspace:^",
-    "@fetchling/config": "workspace:^"
-  },
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc --build"

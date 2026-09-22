@@ -1,6 +1,6 @@
 {
   "name": "@fetchling/core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Embeddable core of fetchling, an MCP router with lazy tool loading. Work in progress.",
   "license": "MIT",
   "author": "Gleb Stepanov",
@@ -13,7 +13,9 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "src",
+    "README.md",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": ">=20"

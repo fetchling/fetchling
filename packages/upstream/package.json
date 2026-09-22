@@ -1,6 +1,7 @@
 {
   "name": "@fetchling/upstream",
   "version": "0.0.0",
+  "private": true,
   "description": "MCP client pool for fetchling: stdio + HTTP upstreams, lazy connect, idle reap.",
   "license": "MIT",
   "author": "Gleb Stepanov",
@@ -17,9 +18,6 @@
   ],
   "engines": {
     "node": ">=20"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "repository": {
     "type": "git",
