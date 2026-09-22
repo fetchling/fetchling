@@ -6,11 +6,21 @@
   "packageManager": "pnpm@10.0.0",
   "license": "MIT",
   "devDependencies": {
-    "@changesets/cli": "^3.0.3"
+    "@biomejs/biome": "^2.5.14",
+    "@changesets/cli": "^3.0.3",
+    "tsdown": "^0.23.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
   },
   "scripts": {
+    "build": "pnpm -r --filter=\"./packages/*\" build",
+    "typecheck": "tsc --build",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "pnpm -r build && changeset publish"
+    "release": "pnpm build && changeset publish"
   }
 }
