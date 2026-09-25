@@ -5,13 +5,8 @@
     "noEmit": false,
     "emitDeclarationOnly": true,
     "outDir": ".tsc",
-    "rootDir": "src",
-    "types": ["node"]
+    "rootDir": "src"
   },
   "include": ["src"],
-  "references": [
-    {
-      "path": "../core"
-    }
-  ]
+  "references": []
 }

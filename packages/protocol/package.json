@@ -1,0 +1,33 @@
+{
+  "name": "@fetchling/protocol",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Unmodified copy of the Model Context Protocol 2026-07-28 schema types (schema/2026-07-28/schema.ts from modelcontextprotocol/modelcontextprotocol), packaged for fetchling.",
+  "license": "(Apache-2.0 AND MIT)",
+  "author": "Model Context Protocol a Series of LF Projects, LLC.",
+  "contributors": ["Gleb Stepanov (packaging)"],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fetchling/fetchling.git",
+    "directory": "packages/protocol"
+  },
+  "homepage": "https://fetchling.sh",
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --build"
+  },
+  "tsdown": {
+    "fixedExtension": false
+  }
+}
