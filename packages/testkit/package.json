@@ -30,12 +30,13 @@
     "typecheck": "tsc --build"
   },
   "dependencies": {
-    "@fetchling/core": "workspace:^"
+    "@fetchling/protocol": "workspace:^"
   },
   "tsdown": {
     "fixedExtension": false
   },
   "devDependencies": {
-    "@types/node": "^24.0.0"
+    "@types/node": "^24.0.0",
+    "vitest": "^5.0.1"
   }
 }

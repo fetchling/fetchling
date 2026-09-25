@@ -11,7 +11,7 @@
   "include": ["src"],
   "references": [
     {
-      "path": "../core"
+      "path": "../protocol"
     }
   ]
 }
