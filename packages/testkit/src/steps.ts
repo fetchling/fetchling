@@ -42,5 +42,8 @@ export function notify(method: string, params: Record<string, unknown>): Step {
 
 /** For deliberately broken output: a string goes out as-is, anything else via JSON.stringify. */
 export function raw(value: unknown): Step {
-  return { kind: "sendRaw", text: typeof value === "string" ? value : JSON.stringify(value) };
+  return {
+    kind: "sendRaw",
+    text: typeof value === "string" ? value : JSON.stringify(value),
+  };
 }

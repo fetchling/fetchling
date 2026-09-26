@@ -45,7 +45,10 @@ function startingPoint(behaviour: Behaviour, params: JsonObject): Behaviour {
   let start = behaviour;
   let node = behaviour;
   while ("next" in node) {
-    if ((node.kind === "inputRequired" || node.kind === "loadShed") && isSatisfied(node, params)) {
+    if (
+      (node.kind === "inputRequired" || node.kind === "loadShed") &&
+      isSatisfied(node, params)
+    ) {
       start = node.next;
     }
     node = node.next;
@@ -57,7 +60,8 @@ function isSatisfied(
   node: InputRequiredBehaviour | LoadShedBehaviour,
   params: JsonObject,
 ): boolean {
-  if (node.requestState !== undefined && params.requestState !== node.requestState) return false;
+  if (node.requestState !== undefined && params.requestState !== node.requestState)
+    return false;
   if (node.kind === "loadShed") return true;
   if (node.inputRequests === undefined) return node.requestState !== undefined;
   const responses = params.inputResponses;
@@ -73,7 +77,13 @@ function run(b: Behaviour, ctx: BehaviourContext): Step[] {
       return [reply(ctx.id, echoResult(ctx))];
     case "toolError": {
       if (ctx.method !== "tools/call") {
-        return [fail(ctx.id, INTERNAL_ERROR, `toolError only applies to tools/call, not ${ctx.method}`)];
+        return [
+          fail(
+            ctx.id,
+            INTERNAL_ERROR,
+            `toolError only applies to tools/call, not ${ctx.method}`,
+          ),
+        ];
       }
       const result: CallToolResult = {
         resultType: "complete",
@@ -103,11 +113,14 @@ function run(b: Behaviour, ctx: BehaviourContext): Step[] {
       const calls = ctx.counters.get(b) ?? 0;
       ctx.counters.set(b, calls + 1);
       const step = b.steps[calls] ?? b.after ?? b.steps.at(-1);
-      if (step === undefined) return [fail(ctx.id, INTERNAL_ERROR, "sequence has no steps")];
+      if (step === undefined)
+        return [fail(ctx.id, INTERNAL_ERROR, "sequence has no steps")];
       return run(step, ctx);
     }
     case "match": {
-      const hit = b.cases.find((c) => jsonEqual(getPath(ctx.params, c.when.path), c.when.equals));
+      const hit = b.cases.find((c) =>
+        jsonEqual(getPath(ctx.params, c.when.path), c.when.equals),
+      );
       return run(hit ? hit.behaviour : b.otherwise, ctx);
     }
     case "malformed":
@@ -133,9 +146,14 @@ function inputRequired(b: InputRequiredBehaviour, ctx: BehaviourContext): Step[]
   const missing = missingCapabilities(b.inputRequests, ctx.clientCapabilities);
   if (missing.length > 0) {
     return [
-      fail(ctx.id, MISSING_REQUIRED_CLIENT_CAPABILITY, `Client did not declare: ${missing.join(", ")}`, {
-        requiredCapabilities: Object.fromEntries(missing.map((name) => [name, {}])),
-      }),
+      fail(
+        ctx.id,
+        MISSING_REQUIRED_CLIENT_CAPABILITY,
+        `Client did not declare: ${missing.join(", ")}`,
+        {
+          requiredCapabilities: Object.fromEntries(missing.map((name) => [name, {}])),
+        },
+      ),
     ];
   }
   const result: InputRequiredResult = {
@@ -146,7 +164,10 @@ function inputRequired(b: InputRequiredBehaviour, ctx: BehaviourContext): Step[]
   return [reply(ctx.id, result)];
 }
 
-function missingCapabilities(requests: InputRequests | undefined, declared: JsonObject): string[] {
+function missingCapabilities(
+  requests: InputRequests | undefined,
+  declared: JsonObject,
+): string[] {
   if (requests === undefined) return [];
   const needed = new Set<string>();
   for (const input of Object.values(requests)) {
@@ -156,14 +177,24 @@ function missingCapabilities(requests: InputRequests | undefined, declared: Json
   return [...needed].filter((name) => !(name in declared));
 }
 
-function progressSteps(steps: number, intervalMs: number, ctx: BehaviourContext): Step[] {
+function progressSteps(
+  steps: number,
+  intervalMs: number,
+  ctx: BehaviourContext,
+): Step[] {
   const token = metaValue(ctx.params, "progressToken");
   const out: Step[] = [];
   for (let i = 1; i <= steps; i++) {
     out.push({ kind: "wait", ms: intervalMs });
     // Progress is opt-in: without a token the client asked for none, so send none.
     if (typeof token === "string" || typeof token === "number") {
-      out.push(notify("notifications/progress", { progressToken: token, progress: i, total: steps }));
+      out.push(
+        notify("notifications/progress", {
+          progressToken: token,
+          progress: i,
+          total: steps,
+        }),
+      );
     }
   }
   return out;
@@ -183,7 +214,9 @@ function echoResult(ctx: BehaviourContext): Result {
     case "prompts/get": {
       const result: GetPromptResult = {
         resultType: "complete",
-        messages: [{ role: "user", content: { type: "text", text: JSON.stringify(args) } }],
+        messages: [
+          { role: "user", content: { type: "text", text: JSON.stringify(args) } },
+        ],
       };
       return result;
     }
@@ -222,7 +255,10 @@ function malformed(mode: MalformedMode, ctx: BehaviourContext): Step[] {
     case "notificationFlood":
       return [
         ...Array.from({ length: 3 }, () =>
-          notify("notifications/message", { level: "info", data: "unrequested log message" }),
+          notify("notifications/message", {
+            level: "info",
+            data: "unrequested log message",
+          }),
         ),
         reply(ctx.id, ok),
       ];
@@ -242,10 +278,13 @@ export function validateBehaviour(behaviour: Behaviour, path: string): void {
     behaviour.inputRequests === undefined &&
     behaviour.requestState === undefined
   ) {
-    throw new Error(`${path}: inputRequired needs inputRequests, requestState, or both`);
+    throw new Error(
+      `${path}: inputRequired needs inputRequests, requestState, or both`,
+    );
   }
   if (behaviour.kind === "sequence") {
-    for (const [i, step] of behaviour.steps.entries()) validateBehaviour(step, `${path}.steps[${i}]`);
+    for (const [i, step] of behaviour.steps.entries())
+      validateBehaviour(step, `${path}.steps[${i}]`);
     if (behaviour.after) validateBehaviour(behaviour.after, `${path}.after`);
   }
   if (behaviour.kind === "match") {

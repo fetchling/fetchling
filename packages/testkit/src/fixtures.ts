@@ -12,20 +12,19 @@ import type {
   ResourceTemplateReference,
   ServerCapabilities,
   Tool,
-} from '@fetchling/protocol';
-
+} from "@fetchling/protocol";
 
 /** Freshness hint attached to every cachable result. */
 export interface CachePolicy {
   ttlMs: number;
-  cacheScope: 'public' | 'private';
+  cacheScope: "public" | "private";
 }
 
 /**
  * Everything a fake upstream is. Plain data on purpose: a stdio fake runs in a child
  * process, so its fixture must survive JSON.stringify. The only exception is the
  * "custom" behaviour, which works in-process only.
-*/
+ */
 export interface ServerFixture {
   name: string;
   version?: string;

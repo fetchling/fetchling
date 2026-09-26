@@ -47,7 +47,8 @@ const CAPABILITY_GATES: Record<string, keyof ServerCapabilities> = {
 type Fault<K extends ServerFault["kind"]> = Extract<ServerFault, { kind: K }>;
 
 export function createHandler(fixture: ServerFixture): Handler {
-  for (const entry of fixture.tools ?? []) validateBehaviour(entry.behaviour, `tool ${entry.tool.name}`);
+  for (const entry of fixture.tools ?? [])
+    validateBehaviour(entry.behaviour, `tool ${entry.tool.name}`);
   for (const entry of fixture.prompts ?? []) {
     validateBehaviour(entry.behaviour, `prompt ${entry.prompt.name}`);
   }
@@ -58,7 +59,10 @@ export function createHandler(fixture: ServerFixture): Handler {
   const capabilities = fixture.capabilities ?? deriveCapabilities(fixture);
   const cache = fixture.cache ?? DEFAULT_CACHE;
   const supportedVersions = fixture.supportedVersions ?? [LATEST_PROTOCOL_VERSION];
-  const serverInfo: Implementation = { name: fixture.name, version: fixture.version ?? "0.0.0-testkit" };
+  const serverInfo: Implementation = {
+    name: fixture.name,
+    version: fixture.version ?? "0.0.0-testkit",
+  };
   const counters = new WeakMap<Behaviour, number>();
   let requestCount = 0;
 
@@ -72,12 +76,19 @@ export function createHandler(fixture: ServerFixture): Handler {
     if (!("id" in message)) return []; // a notification: nothing to answer
     const id = message.id;
     if (typeof id !== "string" && typeof id !== "number") {
-      return [fail(undefined, INVALID_REQUEST, "Request id must be a string or a number, never null")];
+      return [
+        fail(
+          undefined,
+          INVALID_REQUEST,
+          "Request id must be a string or a number, never null",
+        ),
+      ];
     }
 
     requestCount += 1;
     const dieAfter = fault("dieAfter");
-    if (dieAfter && requestCount > dieAfter.requests) return [{ kind: "crash", exitCode: 1 }];
+    if (dieAfter && requestCount > dieAfter.requests)
+      return [{ kind: "crash", exitCode: 1 }];
 
     const params = isObject(message.params) ? message.params : {};
     return dispatch(id, method, params).map(addServerInfo);
@@ -92,34 +103,54 @@ export function createHandler(fixture: ServerFixture): Handler {
       if (typeof version !== "string") missing.push(META.protocolVersion);
       if (!isObject(declared)) missing.push(META.clientCapabilities);
       if (missing.length > 0) {
-        return [fail(id, INVALID_PARAMS, `Missing required _meta: ${missing.join(", ")}`)];
+        return [
+          fail(id, INVALID_PARAMS, `Missing required _meta: ${missing.join(", ")}`),
+        ];
       }
     }
     if (typeof version === "string" && !supportedVersions.includes(version)) {
       return [
-        fail(id, UNSUPPORTED_PROTOCOL_VERSION, `Unsupported protocol version ${version}`, {
-          supported: supportedVersions,
-          requested: version,
-        }),
+        fail(
+          id,
+          UNSUPPORTED_PROTOCOL_VERSION,
+          `Unsupported protocol version ${version}`,
+          {
+            supported: supportedVersions,
+            requested: version,
+          },
+        ),
       ];
     }
 
     const clientCapabilities = isObject(declared) ? declared : {};
     const required = fault("requireCapability");
     if (required && method !== "server/discover") {
-      const missing = Object.keys(required.capabilities).filter((name) => !(name in clientCapabilities));
+      const missing = Object.keys(required.capabilities).filter(
+        (name) => !(name in clientCapabilities),
+      );
       if (missing.length > 0) {
         return [
-          fail(id, MISSING_REQUIRED_CLIENT_CAPABILITY, `Client did not declare: ${missing.join(", ")}`, {
-            requiredCapabilities: required.capabilities,
-          }),
+          fail(
+            id,
+            MISSING_REQUIRED_CLIENT_CAPABILITY,
+            `Client did not declare: ${missing.join(", ")}`,
+            {
+              requiredCapabilities: required.capabilities,
+            },
+          ),
         ];
       }
     }
 
     const gate = CAPABILITY_GATES[method];
     if (gate !== undefined && capabilities[gate] === undefined) {
-      return [fail(id, METHOD_NOT_FOUND, `${method} is unavailable: "${gate}" is not advertised`)];
+      return [
+        fail(
+          id,
+          METHOD_NOT_FOUND,
+          `${method} is unavailable: "${gate}" is not advertised`,
+        ),
+      ];
     }
 
     const behave = (behaviour: Behaviour): Step[] =>
@@ -139,7 +170,9 @@ export function createHandler(fixture: ServerFixture): Handler {
           resultType: "complete",
           supportedVersions,
           capabilities,
-          ...(fixture.instructions === undefined ? {} : { instructions: fixture.instructions }),
+          ...(fixture.instructions === undefined
+            ? {}
+            : { instructions: fixture.instructions }),
           ...cache,
         };
         return cacheable(id, result);
@@ -178,17 +211,22 @@ export function createHandler(fixture: ServerFixture): Handler {
       }
       case "tools/call": {
         const entry = fixture.tools?.find((t) => t.tool.name === params.name);
-        if (!entry) return [fail(id, INVALID_PARAMS, `Unknown tool: ${String(params.name)}`)];
+        if (!entry)
+          return [fail(id, INVALID_PARAMS, `Unknown tool: ${String(params.name)}`)];
         return behave(entry.behaviour);
       }
       case "prompts/get": {
         const entry = fixture.prompts?.find((p) => p.prompt.name === params.name);
-        if (!entry) return [fail(id, INVALID_PARAMS, `Unknown prompt: ${String(params.name)}`)];
+        if (!entry)
+          return [fail(id, INVALID_PARAMS, `Unknown prompt: ${String(params.name)}`)];
         return behave(entry.behaviour);
       }
       case "resources/read": {
         const entry = fixture.resources?.find((r) => r.resource.uri === params.uri);
-        if (!entry) return [fail(id, INVALID_PARAMS, `Resource not found: ${String(params.uri)}`)];
+        if (!entry)
+          return [
+            fail(id, INVALID_PARAMS, `Resource not found: ${String(params.uri)}`),
+          ];
         return behave(entry.behaviour);
       }
       case "completion/complete":
@@ -219,7 +257,10 @@ export function createHandler(fixture: ServerFixture): Handler {
         (c.ref.type === "ref/prompt" ? c.ref.name === ref.name : c.ref.uri === ref.uri),
     );
     const values = (entry?.values ?? []).filter((value) => value.startsWith(prefix));
-    return { resultType: "complete", completion: { values, total: values.length, hasMore: false } };
+    return {
+      resultType: "complete",
+      completion: { values, total: values.length, hasMore: false },
+    };
   }
 
   function listen(id: RequestId, params: JsonObject): Step[] {
@@ -231,10 +272,16 @@ export function createHandler(fixture: ServerFixture): Handler {
     if (requested.promptsListChanged === true && capabilities.prompts?.listChanged) {
       honoured.promptsListChanged = true;
     }
-    if (requested.resourcesListChanged === true && capabilities.resources?.listChanged) {
+    if (
+      requested.resourcesListChanged === true &&
+      capabilities.resources?.listChanged
+    ) {
       honoured.resourcesListChanged = true;
     }
-    if (Array.isArray(requested.resourceSubscriptions) && capabilities.resources?.subscribe) {
+    if (
+      Array.isArray(requested.resourceSubscriptions) &&
+      capabilities.resources?.subscribe
+    ) {
       honoured.resourceSubscriptions = requested.resourceSubscriptions.filter(
         (uri): uri is string => typeof uri === "string",
       );
@@ -264,7 +311,10 @@ export function createHandler(fixture: ServerFixture): Handler {
         ...message,
         result: {
           ...message.result,
-          _meta: { ...message.result._meta, "io.modelcontextprotocol/serverInfo": serverInfo },
+          _meta: {
+            ...message.result._meta,
+            "io.modelcontextprotocol/serverInfo": serverInfo,
+          },
         },
       },
     };

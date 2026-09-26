@@ -14,7 +14,10 @@ export const META = {
   subscriptionId: "io.modelcontextprotocol/subscriptionId",
 } as const;
 
-export const TESTKIT_CLIENT: Implementation = { name: "fetchling-testkit", version: "0.0.0" };
+export const TESTKIT_CLIENT: Implementation = {
+  name: "fetchling-testkit",
+  version: "0.0.0",
+};
 
 /** A complete, valid request `_meta`. Override any key to see how a server reacts. */
 export function meta(overrides: Partial<RequestMetaObject> = {}): RequestMetaObject {
@@ -36,5 +39,10 @@ export function request(
 ): JSONRPCRequest {
   const id = nextId;
   nextId += 1;
-  return { jsonrpc: "2.0", id, method, params: { ...params, _meta: meta(metaOverrides) } };
+  return {
+    jsonrpc: "2.0",
+    id,
+    method,
+    params: { ...params, _meta: meta(metaOverrides) },
+  };
 }
