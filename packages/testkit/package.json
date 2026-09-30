@@ -2,7 +2,7 @@
   "name": "@fetchling/testkit",
   "version": "0.0.0",
   "private": true,
-  "description": "Fake upstream MCP servers and test fixtures for fetchling.",
+  "description": "Fake MCP servers (stdio + Streamable HTTP), a raw client, a traffic recorder and a spec-rule checker for testing fetchling.",
   "license": "MIT",
   "author": "Gleb Stepanov",
   "type": "module",
@@ -33,7 +33,11 @@
     "@fetchling/protocol": "workspace:^"
   },
   "tsdown": {
-    "fixedExtension": false
+    "fixedExtension": false,
+    "entry": [
+      "src/index.ts",
+      "src/stdio-main.ts"
+    ]
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

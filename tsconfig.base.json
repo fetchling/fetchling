@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
     "target": "es2023",
-    "lib": ["es2023"],
+    "lib": ["es2023", "esnext.disposable"],
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "strict": true,
