@@ -1,4 +1,5 @@
 import { isObject, metaValue } from "./json.js";
+import { scanParamHeaders } from "./mcp-headers.js";
 import { META } from "./meta.js";
 
 export type Severity = "error" | "warning";
@@ -22,6 +23,9 @@ export interface CheckResponseOptions {
   /** resultType values added by extensions that both sides advertised. */
   extraResultTypes?: readonly string[];
 }
+
+/** The only requests that may be answered with input_required (mrtr.md § Supported Requests). */
+const MRTR_METHODS = new Set(["tools/call", "prompts/get", "resources/read"]);
 
 const CACHEABLE_METHODS = new Set([
   "server/discover",
@@ -156,6 +160,15 @@ export function checkResponse(
       ),
     );
   }
+  if (resultType === "input_required" && !MRTR_METHODS.has(request.method)) {
+    violations.push(
+      violation(
+        "inputRequired.allowedMethod",
+        "result.resultType",
+        `input_required is only allowed on tools/call, prompts/get and resources/read, not ${request.method}`,
+      ),
+    );
+  }
   if (
     resultType === "input_required" &&
     result.inputRequests === undefined &&
@@ -171,12 +184,12 @@ export function checkResponse(
   }
   if (resultType === "complete" && CACHEABLE_METHODS.has(request.method)) {
     const { ttlMs, cacheScope } = result;
-    if (typeof ttlMs !== "number" || ttlMs < 0) {
+    if (typeof ttlMs !== "number" || !Number.isInteger(ttlMs) || ttlMs < 0) {
       violations.push(
         violation(
           "cacheable.ttlMs",
           "result.ttlMs",
-          `required non-negative number on ${request.method}`,
+          `required non-negative integer on ${request.method}`,
         ),
       );
     }
@@ -294,4 +307,193 @@ export function checkStream(entries: readonly StreamEntry[]): Violation[] {
 function idKey(id: unknown): string | undefined {
   if (typeof id === "number" || typeof id === "string") return `${typeof id}:${id}`;
   return undefined;
+}
+
+// ── tools ───────────────────────────────────────────────────────────────────────
+
+const TOOL_NAME_CHARSET = /^[A-Za-z0-9_.-]+$/;
+
+/** Rules for one tool definition (tools.md § Tool, § Tool Names, § x-mcp-header). */
+export function checkTool(tool: unknown): Violation[] {
+  if (!isObject(tool)) return [violation("tool.object", "", "tool must be an object")];
+  const violations: Violation[] = [];
+  const { name, inputSchema } = tool;
+  if (typeof name !== "string") {
+    violations.push(violation("tool.name.string", "name", "required string"));
+  } else {
+    if (name.length < 1 || name.length > 128) {
+      violations.push(
+        violation(
+          "tool.name.length",
+          "name",
+          `SHOULD be 1-128 characters, is ${name.length}`,
+          "warning",
+        ),
+      );
+    }
+    if (!TOOL_NAME_CHARSET.test(name)) {
+      violations.push(
+        violation(
+          "tool.name.charset",
+          "name",
+          "SHOULD use only A-Z a-z 0-9 _ - .",
+          "warning",
+        ),
+      );
+    }
+  }
+  if (!isObject(inputSchema) || inputSchema.type !== "object") {
+    violations.push(
+      violation(
+        "tool.inputSchema.object",
+        "inputSchema",
+        'must be a JSON Schema object with type "object"',
+      ),
+    );
+  } else {
+    const scan = scanParamHeaders(inputSchema);
+    if (!scan.ok) {
+      violations.push(
+        violation(
+          "tool.xMcpHeader.valid",
+          "inputSchema",
+          `invalid x-mcp-header: ${scan.reason} (HTTP clients MUST exclude this tool)`,
+        ),
+      );
+    }
+  }
+  return violations;
+}
+
+/** Rules across a whole tool list: every tool, plus uniqueness within the server. */
+export function checkToolList(tools: readonly unknown[]): Violation[] {
+  const violations: Violation[] = [];
+  const seen = new Set<string>();
+  for (const [index, tool] of tools.entries()) {
+    for (const v of checkTool(tool))
+      violations.push({ ...v, path: `[${index}]${v.path ? `.${v.path}` : ""}` });
+    const name = isObject(tool) ? tool.name : undefined;
+    if (typeof name === "string") {
+      if (seen.has(name)) {
+        violations.push(
+          violation(
+            "tool.name.unique",
+            `[${index}].name`,
+            `"${name}" appears more than once`,
+            "warning",
+          ),
+        );
+      }
+      seen.add(name);
+    }
+  }
+  return violations;
+}
+
+// ── Streamable HTTP ─────────────────────────────────────────────────────────────
+
+export interface HttpExchangeRecord {
+  /** Request headers, lowercase names. */
+  requestHeaders: Readonly<Record<string, string | undefined>>;
+  /** The parsed request body. */
+  request: unknown;
+  status: number;
+  /** Response headers, lowercase names. */
+  responseHeaders: Readonly<Record<string, string | undefined>>;
+  /** Parsed messages in the response: the body, or each SSE event. */
+  messages: readonly unknown[];
+}
+
+/**
+ * Transport-level rules for one POST and its answer (streamable-http.md): the client's
+ * Accept and metadata headers, the server's content type and status codes.
+ */
+export function checkHttpExchange(exchange: HttpExchangeRecord): Violation[] {
+  const violations: Violation[] = [];
+  const accept = exchange.requestHeaders.accept ?? "";
+  if (!accept.includes("application/json") || !accept.includes("text/event-stream")) {
+    violations.push(
+      violation(
+        "http.accept",
+        "headers.accept",
+        "client MUST accept both application/json and text/event-stream",
+      ),
+    );
+  }
+  const request = isObject(exchange.request) ? exchange.request : undefined;
+  const isRequest =
+    request !== undefined && typeof request.method === "string" && "id" in request;
+  const isNotification =
+    request !== undefined && typeof request.method === "string" && !("id" in request);
+
+  if (isRequest && request) {
+    if (exchange.requestHeaders["mcp-protocol-version"] === undefined) {
+      violations.push(
+        violation(
+          "http.headers.protocolVersion",
+          "headers",
+          "MCP-Protocol-Version is required on every POST",
+        ),
+      );
+    }
+    if (exchange.requestHeaders["mcp-method"] !== request.method) {
+      violations.push(
+        violation(
+          "http.headers.method",
+          "headers",
+          "Mcp-Method must equal the body method",
+        ),
+      );
+    }
+  }
+
+  if (isNotification) {
+    if (exchange.status !== 202 && exchange.status < 400) {
+      violations.push(
+        violation(
+          "http.status.notification",
+          "status",
+          `an accepted notification gets 202, not ${exchange.status}`,
+        ),
+      );
+    }
+    return violations;
+  }
+
+  const type = exchange.responseHeaders["content-type"] ?? "";
+  if (
+    exchange.status < 300 &&
+    !type.startsWith("application/json") &&
+    !type.startsWith("text/event-stream")
+  ) {
+    violations.push(
+      violation(
+        "http.contentType",
+        "headers.content-type",
+        `must be application/json or text/event-stream, got "${type}"`,
+      ),
+    );
+  }
+
+  const response = exchange.messages.find(
+    (m) => isObject(m) && ("result" in m || "error" in m),
+  );
+  const code =
+    isObject(response) && isObject(response.error) ? response.error.code : undefined;
+  const expected =
+    code === -32020 || code === -32021 || code === -32022
+      ? 400
+      : code === -32601
+        ? 404
+        : undefined;
+  if (expected !== undefined && exchange.status !== expected) {
+    violations.push(
+      violation(
+        "http.status",
+        "status",
+        `error ${String(code)} must be sent with HTTP ${expected}, got ${exchange.status}`,
+      ),
+    );
+  }
+  return violations;
 }

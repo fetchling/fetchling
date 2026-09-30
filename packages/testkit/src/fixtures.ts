@@ -43,6 +43,22 @@ export interface ServerFixture {
   faults?: ServerFault[];
   /** "strict" (the default) rejects requests that break the spec, as a careful server would. */
   inbound?: "strict" | "lenient";
+  /**
+   * Items per page for tools/list, prompts/list, resources/list and
+   * resources/templates/list. Default: everything on one page, no `nextCursor`.
+   */
+  pageSize?: number;
+  /**
+   * HTTP only. How a request's answer is framed: "json" (one JSON body), "sse" (an
+   * event stream) or "auto" (the default: JSON when the script is a single response,
+   * a stream when it has notifications, waits or never ends). Errors that carry an
+   * HTTP status (400, 404) are always sent as JSON with that status.
+   */
+  responseMode?: "auto" | "json" | "sse";
+  /** HTTP only. `Origin` values accepted besides localhost ones; others get 403. */
+  allowedOrigins?: string[];
+  /** HTTP only. Interval of `:` keep-alive comments on open streams. Default 15000; 0 disables. */
+  keepAliveMs?: number;
 }
 
 export interface ToolFixture {

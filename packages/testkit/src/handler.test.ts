@@ -256,3 +256,78 @@ describe("subscriptions/listen", () => {
     expect(steps.at(-1)).toEqual({ kind: "hang" });
   });
 });
+
+describe("pagination", () => {
+  const tools = ["a", "b", "c", "d", "e"].map((name) => ({
+    tool: { ...readFile, name },
+    behaviour: { kind: "echo" } as const,
+  }));
+  const handler = createHandler({ name: "fs", tools, pageSize: 2 });
+
+  it("pages through the whole list with opaque cursors", () => {
+    const names: string[] = [];
+    let cursor: string | undefined;
+    for (let page = 0; page < 10; page++) {
+      const response = only(
+        handler.handle(request("tools/list", cursor === undefined ? {} : { cursor })),
+      ) as {
+        result: { tools: { name: string }[]; nextCursor?: string };
+      };
+      names.push(...response.result.tools.map((t) => t.name));
+      cursor = response.result.nextCursor;
+      if (cursor === undefined) break;
+    }
+    expect(names).toEqual(["a", "b", "c", "d", "e"]);
+  });
+
+  it("answers an unreadable cursor with -32602 (pagination.md § Error Handling)", () => {
+    expect(
+      only(handler.handle(request("tools/list", { cursor: "garbage" }))),
+    ).toMatchObject({ error: { code: -32602 } });
+  });
+});
+
+describe("transport hints", () => {
+  const handler = createHandler(withTool({ kind: "echo" }));
+
+  it("marks method-not-found for HTTP 404 and missing _meta for HTTP 400", () => {
+    expect(handler.handle(request("nope/nothing"))[0]).toMatchObject({
+      kind: "send",
+      httpStatus: 404,
+    });
+    expect(
+      handler.handle({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} })[0],
+    ).toMatchObject({ httpStatus: 400 });
+  });
+
+  it("tells the transport to register a subscription stream", () => {
+    const req = request("subscriptions/listen", {
+      notifications: { toolsListChanged: true },
+    });
+    expect(handler.handle(req)).toContainEqual({
+      kind: "subscribe",
+      subscriptionId: req.id,
+      filter: { toolsListChanged: true },
+    });
+  });
+
+  it("continues sequence counters when a transport passes them to a new handler", () => {
+    const behaviour: Behaviour = {
+      kind: "sequence",
+      steps: [{ kind: "echo" }, { kind: "toolError", message: "second" }],
+    };
+    const counters = new WeakMap<Behaviour, number>();
+    const fixture = withTool(behaviour);
+    only(
+      createHandler(fixture, { counters }).handle(
+        request("tools/call", { name: "read_file" }),
+      ),
+    );
+    const second = only(
+      createHandler(fixture, { counters }).handle(
+        request("tools/call", { name: "read_file" }),
+      ),
+    );
+    expect(second).toMatchObject({ result: { isError: true } });
+  });
+});

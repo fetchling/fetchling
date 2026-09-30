@@ -32,6 +32,14 @@ export interface Handler {
   handle(message: unknown): Step[];
 }
 
+export interface HandlerOptions {
+  /**
+   * Sequence counters to continue from. Transports pass the previous handler's map
+   * when a fixture changes mid-test, so unchanged `sequence` behaviours keep counting.
+   */
+  counters?: WeakMap<Behaviour, number>;
+}
+
 /** Methods that only exist when the matching server capability is advertised. */
 const CAPABILITY_GATES: Record<string, keyof ServerCapabilities> = {
   "tools/list": "tools",
@@ -44,16 +52,30 @@ const CAPABILITY_GATES: Record<string, keyof ServerCapabilities> = {
   "completion/complete": "completions",
 };
 
+// HTTP statuses the Streamable HTTP transport requires for specific errors.
+const BAD_REQUEST = 400;
+const NOT_FOUND = 404;
+
 type Fault<K extends ServerFault["kind"]> = Extract<ServerFault, { kind: K }>;
 
-export function createHandler(fixture: ServerFixture): Handler {
-  for (const entry of fixture.tools ?? [])
+export function createHandler(
+  fixture: ServerFixture,
+  options: HandlerOptions = {},
+): Handler {
+  for (const entry of fixture.tools ?? []) {
     validateBehaviour(entry.behaviour, `tool ${entry.tool.name}`);
+  }
   for (const entry of fixture.prompts ?? []) {
     validateBehaviour(entry.behaviour, `prompt ${entry.prompt.name}`);
   }
   for (const entry of fixture.resources ?? []) {
     validateBehaviour(entry.behaviour, `resource ${entry.resource.uri}`);
+  }
+  if (
+    fixture.pageSize !== undefined &&
+    !(Number.isInteger(fixture.pageSize) && fixture.pageSize > 0)
+  ) {
+    throw new Error(`${fixture.name}: pageSize must be a positive integer`);
   }
 
   const capabilities = fixture.capabilities ?? deriveCapabilities(fixture);
@@ -63,7 +85,7 @@ export function createHandler(fixture: ServerFixture): Handler {
     name: fixture.name,
     version: fixture.version ?? "0.0.0-testkit",
   };
-  const counters = new WeakMap<Behaviour, number>();
+  const counters = options.counters ?? new WeakMap<Behaviour, number>();
   let requestCount = 0;
 
   function fault<K extends ServerFault["kind"]>(kind: K): Fault<K> | undefined {
@@ -81,6 +103,8 @@ export function createHandler(fixture: ServerFixture): Handler {
           undefined,
           INVALID_REQUEST,
           "Request id must be a string or a number, never null",
+          undefined,
+          BAD_REQUEST,
         ),
       ];
     }
@@ -104,7 +128,13 @@ export function createHandler(fixture: ServerFixture): Handler {
       if (!isObject(declared)) missing.push(META.clientCapabilities);
       if (missing.length > 0) {
         return [
-          fail(id, INVALID_PARAMS, `Missing required _meta: ${missing.join(", ")}`),
+          fail(
+            id,
+            INVALID_PARAMS,
+            `Missing required _meta: ${missing.join(", ")}`,
+            undefined,
+            BAD_REQUEST,
+          ),
         ];
       }
     }
@@ -114,10 +144,8 @@ export function createHandler(fixture: ServerFixture): Handler {
           id,
           UNSUPPORTED_PROTOCOL_VERSION,
           `Unsupported protocol version ${version}`,
-          {
-            supported: supportedVersions,
-            requested: version,
-          },
+          { supported: supportedVersions, requested: version },
+          BAD_REQUEST,
         ),
       ];
     }
@@ -134,9 +162,8 @@ export function createHandler(fixture: ServerFixture): Handler {
             id,
             MISSING_REQUIRED_CLIENT_CAPABILITY,
             `Client did not declare: ${missing.join(", ")}`,
-            {
-              requiredCapabilities: required.capabilities,
-            },
+            { requiredCapabilities: required.capabilities },
+            BAD_REQUEST,
           ),
         ];
       }
@@ -149,6 +176,8 @@ export function createHandler(fixture: ServerFixture): Handler {
           id,
           METHOD_NOT_FOUND,
           `${method} is unavailable: "${gate}" is not advertised`,
+          undefined,
+          NOT_FOUND,
         ),
       ];
     }
@@ -178,33 +207,54 @@ export function createHandler(fixture: ServerFixture): Handler {
         return cacheable(id, result);
       }
       case "tools/list": {
+        const listed = page(
+          (fixture.tools ?? []).map((entry) => entry.tool),
+          params,
+        );
+        if (!listed) return [invalidCursor(id)];
         const result: ListToolsResult = {
           resultType: "complete",
-          tools: (fixture.tools ?? []).map((entry) => entry.tool),
+          tools: listed.items,
+          ...listed.next,
           ...cache,
         };
         return cacheable(id, result);
       }
       case "prompts/list": {
+        const listed = page(
+          (fixture.prompts ?? []).map((entry) => entry.prompt),
+          params,
+        );
+        if (!listed) return [invalidCursor(id)];
         const result: ListPromptsResult = {
           resultType: "complete",
-          prompts: (fixture.prompts ?? []).map((entry) => entry.prompt),
+          prompts: listed.items,
+          ...listed.next,
           ...cache,
         };
         return cacheable(id, result);
       }
       case "resources/list": {
+        const listed = page(
+          (fixture.resources ?? []).map((entry) => entry.resource),
+          params,
+        );
+        if (!listed) return [invalidCursor(id)];
         const result: ListResourcesResult = {
           resultType: "complete",
-          resources: (fixture.resources ?? []).map((entry) => entry.resource),
+          resources: listed.items,
+          ...listed.next,
           ...cache,
         };
         return cacheable(id, result);
       }
       case "resources/templates/list": {
+        const listed = page(fixture.resourceTemplates ?? [], params);
+        if (!listed) return [invalidCursor(id)];
         const result: ListResourceTemplatesResult = {
           resultType: "complete",
-          resourceTemplates: fixture.resourceTemplates ?? [],
+          resourceTemplates: listed.items,
+          ...listed.next,
           ...cache,
         };
         return cacheable(id, result);
@@ -223,10 +273,11 @@ export function createHandler(fixture: ServerFixture): Handler {
       }
       case "resources/read": {
         const entry = fixture.resources?.find((r) => r.resource.uri === params.uri);
-        if (!entry)
+        if (!entry) {
           return [
             fail(id, INVALID_PARAMS, `Resource not found: ${String(params.uri)}`),
           ];
+        }
         return behave(entry.behaviour);
       }
       case "completion/complete":
@@ -234,8 +285,43 @@ export function createHandler(fixture: ServerFixture): Handler {
       case "subscriptions/listen":
         return listen(id, params);
       default:
-        return [fail(id, METHOD_NOT_FOUND, `Method not found: ${method}`)];
+        return [
+          fail(
+            id,
+            METHOD_NOT_FOUND,
+            `Method not found: ${method}`,
+            undefined,
+            NOT_FOUND,
+          ),
+        ];
     }
+  }
+
+  /**
+   * One page of a list. Cursors are opaque to clients (base64url of an offset here);
+   * an unreadable or out-of-range cursor returns undefined, which becomes -32602.
+   */
+  function page<T>(
+    items: readonly T[],
+    params: JsonObject,
+  ): { items: T[]; next: { nextCursor?: string } } | undefined {
+    let offset = 0;
+    if (params.cursor !== undefined) {
+      if (typeof params.cursor !== "string") return undefined;
+      const decoded = decodeCursor(params.cursor);
+      if (decoded === undefined || decoded > items.length) return undefined;
+      offset = decoded;
+    }
+    const size = fixture.pageSize ?? items.length;
+    const end = offset + size;
+    return {
+      items: items.slice(offset, end),
+      next: end < items.length ? { nextCursor: encodeCursor(end) } : {},
+    };
+  }
+
+  function invalidCursor(id: RequestId): Step {
+    return fail(id, INVALID_PARAMS, "Invalid cursor");
   }
 
   function cacheable(id: RequestId, result: Result): Step[] {
@@ -296,6 +382,8 @@ export function createHandler(fixture: ServerFixture): Handler {
         }),
       );
     }
+    // Tells the transport to register this stream, so later notifications reach it.
+    steps.push({ kind: "subscribe", subscriptionId: id, filter: honoured });
     // The listen response only arrives when the stream closes, so the request stays open.
     steps.push({ kind: "hang" });
     return steps;
@@ -306,7 +394,7 @@ export function createHandler(fixture: ServerFixture): Handler {
     const message = step.message;
     if (!("result" in message)) return step;
     return {
-      kind: "send",
+      ...step,
       message: {
         ...message,
         result: {
@@ -323,7 +411,27 @@ export function createHandler(fixture: ServerFixture): Handler {
   return { fixture, capabilities, handle };
 }
 
-function deriveCapabilities(fixture: ServerFixture): ServerCapabilities {
+function encodeCursor(offset: number): string {
+  return Buffer.from(JSON.stringify({ offset })).toString("base64url");
+}
+
+function decodeCursor(cursor: string): number | undefined {
+  try {
+    const parsed: unknown = JSON.parse(
+      Buffer.from(cursor, "base64url").toString("utf8"),
+    );
+    if (!isObject(parsed)) return undefined;
+    const { offset } = parsed;
+    return typeof offset === "number" && Number.isInteger(offset) && offset >= 0
+      ? offset
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Capabilities a fixture implies when it doesn't declare its own. */
+export function deriveCapabilities(fixture: ServerFixture): ServerCapabilities {
   const capabilities: ServerCapabilities = {};
   if (fixture.tools?.length) capabilities.tools = { listChanged: true };
   if (fixture.prompts?.length) capabilities.prompts = { listChanged: true };
