@@ -1,0 +1,69 @@
+# Checks every push to main and every pull request. Never publishes anything:
+# releasing is a separate workflow (release.yml, not written yet — plan D10/D11).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Read-only token: this workflow only checks code.
+permissions:
+  contents: read
+
+# A newer push to the same branch or PR cancels the run still in progress.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      # Let every Node version finish, so one failure doesn't hide another.
+      fail-fast: false
+      matrix:
+        # 22 is the primary target and 24 the current release (plan §4).
+        # Bun and Deno join once this is green (plan §8).
+        node: [22, 24]
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      # Installs the pnpm version pinned in package.json's "packageManager" field.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node ${{ matrix.node }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      # --frozen-lockfile fails the run if package.json and pnpm-lock.yaml disagree,
+      # instead of silently resolving new versions in CI.
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint and format check
+        run: pnpm lint
+
+      # Workspace packages import each other's built output, so build before
+      # typechecking and testing. Called directly (not via the root scripts,
+      # which build again) so each step's failure is clearly attributable.
+      - name: Build
+        run: pnpm build
+
+      - name: Typecheck
+        run: pnpm exec tsc --build
+
+      - name: Test
+        run: pnpm exec vitest run
+
+      # A build or test that writes into the repository is a bug: generated files
+      # belong in gitignored folders. Fails if the working tree changed.
+      - name: Working tree is clean
+        run: git diff --exit-code --stat
