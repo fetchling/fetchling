@@ -1,0 +1,16 @@
+{
+  "$comment": "Provenance of the vendored files. test/upstream.test.ts fails if a file no longer matches its pinned hash; `pnpm --filter @fetchling/protocol check-upstream` compares against upstream main. Update all of this together, in one reviewed commit (plan D15).",
+  "repository": "https://github.com/modelcontextprotocol/modelcontextprotocol",
+  "commit": "271ecc9accafdd9b83a3c869fa67c22953b2af80",
+  "license": "(Apache-2.0 AND MIT)",
+  "files": {
+    "src/schema.ts": {
+      "upstreamPath": "schema/2026-07-28/schema.ts",
+      "sha256": "742750af0bb8c716e7030c4977c992b55d1adc4407e9e66997db5846baedc2cd"
+    },
+    "LICENSE": {
+      "upstreamPath": "LICENSE",
+      "sha256": "0382b0057770ca05e9c350a50aa3b1c1fea84da0bc81d723bf00b9aa841be58a"
+    }
+  }
+}

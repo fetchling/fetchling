@@ -114,5 +114,5 @@ behaviours are rejected with a clear error.
 
 ## Tests
 
-145 tests across fixtures, handler, checker, header rules, SSE, recorder, catalogs, and HTTP /
-stdio / cluster integration: `pnpm test` from the repository root.
+146 tests across fixtures, handler, checker, header rules, SSE, recorder, catalogs, and HTTP /
+stdio / cluster integration (including control-channel robustness): `pnpm test` from the repository root.
