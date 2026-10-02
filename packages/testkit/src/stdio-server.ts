@@ -60,6 +60,8 @@ export function serveStdio(options: StdioServerOptions): StdioServer {
   };
 
   const lines = createInterface({ input, crlfDelay: Number.POSITIVE_INFINITY });
+  // A broken stdin is the client going away: the "close" handler below exits.
+  lines.on("error", () => {});
   lines.on("line", (line) => {
     if (line.trim() === "") return;
     options.onFrame?.("in", line);

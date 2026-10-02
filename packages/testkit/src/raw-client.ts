@@ -366,6 +366,8 @@ function stdioClient(command: string, args: readonly string[]): RawClient {
     input: child.stdout,
     crlfDelay: Number.POSITIVE_INFINITY,
   });
+  // The child dying mid-write can error its stdout; the "exit" handler fails pending requests.
+  lines.on("error", () => {});
   lines.on("line", (line) => {
     const parsed = parseOrNull(line);
     if (!isObject(parsed)) {

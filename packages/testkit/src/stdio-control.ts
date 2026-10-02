@@ -52,6 +52,9 @@ export async function startControlServer(handlers: {
       input: socket,
       crlfDelay: Number.POSITIVE_INFINITY,
     });
+    // readline re-emits socket errors; a fake killed mid-write (SIGKILL) resets the socket,
+    // which must never crash the test process. The socket's "close" handler records the exit.
+    lines.on("error", () => {});
     lines.on("line", (line) => {
       let report: ControlReport;
       try {
@@ -115,6 +118,9 @@ export function connectControl(address: string): ControlLink {
     failed = true; // the test process went away: keep serving, just stop reporting
   });
   const lines = createInterface({ input: socket, crlfDelay: Number.POSITIVE_INFINITY });
+  lines.on("error", () => {
+    failed = true; // same as a socket error: keep serving, stop reporting
+  });
   lines.on("line", (line) => {
     try {
       const command = JSON.parse(line) as ControlCommand;

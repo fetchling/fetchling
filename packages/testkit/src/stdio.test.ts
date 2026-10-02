@@ -1,3 +1,5 @@
+import { once } from "node:events";
+import { connect } from "node:net";
 import { createInterface } from "node:readline";
 import { PassThrough } from "node:stream";
 import type { Tool } from "@fetchling/protocol";
@@ -6,6 +8,7 @@ import { checkStream } from "./checker.js";
 import type { ServerFixture } from "./fixtures.js";
 import { request } from "./meta.js";
 import { type RawClient, rawClient } from "./raw-client.js";
+import { startControlServer } from "./stdio-control.js";
 import { serveStdio } from "./stdio-server.js";
 import { type StdioFakeUpstream, startStdio } from "./stdio-transport.js";
 
@@ -245,5 +248,29 @@ describe("stdio fake in a child process", () => {
         }),
       ),
     ).rejects.toThrow(/plain data/);
+  });
+});
+
+describe("control channel robustness", () => {
+  it("survives a fake whose control socket is reset (as when a process is SIGKILLed mid-write)", async () => {
+    // Found by the SDK v2 spike: the SDK kills its probe process abruptly, the control socket
+    // gets ECONNRESET, and an unhandled readline "error" used to crash the test process.
+    const disconnected = new Promise<void>((resolve) => {
+      void startControlServer({
+        connected() {},
+        report() {},
+        disconnected: () => resolve(),
+      }).then(async (control) => {
+        const [host, port] = control.address.split(":");
+        const socket = connect({ host, port: Number(port) });
+        await once(socket, "connect");
+        socket.write(`${JSON.stringify({ t: "hello", pid: 1 })}\n`);
+        await new Promise((r) => setTimeout(r, 20));
+        socket.resetAndDestroy(); // sends a TCP RST: the server side sees ECONNRESET
+        await disconnected;
+        await control.close();
+      });
+    });
+    await expect(disconnected).resolves.toBeUndefined();
   });
 });
