@@ -1,7 +1,6 @@
 {
   "name": "@fetchling/protocol",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "description": "Unmodified copy of the Model Context Protocol 2026-07-28 schema types (schema/2026-07-28/schema.ts from modelcontextprotocol/modelcontextprotocol), packaged for fetchling.",
   "license": "(Apache-2.0 AND MIT)",
   "author": "Model Context Protocol a Series of LF Projects, LLC.",
@@ -20,10 +19,11 @@
     "src",
     "upstream.json",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public"
